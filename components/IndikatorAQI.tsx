@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import { LaporanUdara } from "../../types/cuaca";
+import { LaporanUdara } from "../app/types/cuaca";
 
 export default function IndikatorAQI({
   kota,
