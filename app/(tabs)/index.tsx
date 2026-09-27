@@ -1,6 +1,6 @@
 // app/(tabs)/index.tsx
 import { useEffect, useState } from "react";
-import { useWindowDimensions } from "react-native";
+import { Text, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import HasilPencarianList from "../../components/HasilPencarianList";
@@ -56,13 +56,22 @@ export default function HalamanUtama() {
 
       {/* Tampilkan Hasil Pencarian Geocoding jika sedang mengetik/mencari */}
       {query.trim() !== "" ? (
-        <HasilPencarianList
-          data={hasil}
-          sedangMemuat={sedangMemuat}
-          error={error}
-          query={query}
-          onPilihKota={handlePilihKota}
-        />
+        <>
+          {/* LATIHAN MANDIRI 1: Tampilkan Teks Indikator Jumlah Kota */}
+          {!sedangMemuat && !error && hasil.length > 0 && (
+            <Text style={{ fontWeight: "bold", color: "#555" }}>
+              Ditemukan {hasil.length} kota
+            </Text>
+          )}
+
+          <HasilPencarianList
+            data={hasil}
+            sedangMemuat={sedangMemuat}
+            error={error}
+            query={query}
+            onPilihKota={handlePilihKota}
+          />
+        </>
       ) : (
         <>
           <WeatherCard

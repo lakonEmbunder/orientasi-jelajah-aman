@@ -41,10 +41,30 @@ export default function HasilPencarianList({
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        {/* Tambahkan accessibilityLabel di sini */}
+        <Text
+          accessibilityLabel={`Peringatan error: ${error}`}
+          style={styles.textError}
+        >
+          {error}
+        </Text>
+      </View>
+    );
+  }
+
   if (query.trim() !== "" && data.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.textInfo}>Kota "{query}" tidak ditemukan.</Text>
+        {/* Tambahkan accessibilityLabel di sini */}
+        <Text
+          accessibilityLabel="Pemberitahuan: Kota tidak ditemukan"
+          style={styles.textInfo}
+        >
+          Kota "{query}" tidak ditemukan.
+        </Text>
       </View>
     );
   }
