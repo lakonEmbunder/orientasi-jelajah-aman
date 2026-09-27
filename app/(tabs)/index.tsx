@@ -3,10 +3,13 @@ import { useEffect, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import HasilPencarianList from "../../components/HasilPencarianList";
 import RiwayatList from "../../components/RiwayatList";
 import SearchBox from "../../components/SearchBox";
 import WeatherCard from "../../components/WeatherCard";
+import { usePencarianKota } from "../../hooks/usePencarianKota";
 import { TingkatAQI } from "../../types/cuaca";
+import { GeocodingResult } from "../../types/geocoding";
 
 // Data dummy cuaca per kota
 const DATA_CUACA_KOTA: Record<string, { suhu: number; aqi: TingkatAQI }> = {
@@ -25,14 +28,18 @@ export default function HalamanUtama() {
   const { width } = useWindowDimensions();
   const isTablet = width > 768;
 
+  // Panggil custom hook pencarian
+  const { query, hasil, sedangMemuat, error, eksekusiCari } =
+    usePencarianKota();
+
   useEffect(() => {
     console.log("Kota aktif berubah menjadi:", kotaAktif);
   }, [kotaAktif]);
 
-  function handleCari(kota: string) {
-    setKotaAktif(kota);
-    if (!riwayat.includes(kota)) {
-      setRiwayat([...riwayat, kota]);
+  function handlePilihKota(item: GeocodingResult) {
+    setKotaAktif(item.name);
+    if (!riwayat.includes(item.name)) {
+      setRiwayat([item.name, ...riwayat]);
     }
   }
 
@@ -45,13 +52,27 @@ export default function HalamanUtama() {
 
   return (
     <SafeAreaView style={{ flex: 1, padding: isTablet ? 32 : 16, gap: 16 }}>
-      <SearchBox onCari={handleCari} />
-      <WeatherCard
-        kota={kotaAktif}
-        suhu={dataCuaca.suhu}
-        tingkatAQI={dataCuaca.aqi}
-      />
-      <RiwayatList daftarKota={riwayat} />
+      <SearchBox onCari={eksekusiCari} />
+
+      {/* Tampilkan Hasil Pencarian Geocoding jika sedang mengetik/mencari */}
+      {query.trim() !== "" ? (
+        <HasilPencarianList
+          data={hasil}
+          sedangMemuat={sedangMemuat}
+          error={error}
+          query={query}
+          onPilihKota={handlePilihKota}
+        />
+      ) : (
+        <>
+          <WeatherCard
+            kota={kotaAktif}
+            suhu={dataCuaca.suhu}
+            tingkatAQI={dataCuaca.aqi}
+          />
+          <RiwayatList daftarKota={riwayat} />
+        </>
+      )}
     </SafeAreaView>
   );
 }
