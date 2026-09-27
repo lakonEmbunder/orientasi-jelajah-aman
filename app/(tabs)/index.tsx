@@ -13,7 +13,7 @@ const DATA_CUACA_KOTA: Record<string, { suhu: number; aqi: TingkatAQI }> = {
   pekalongan: { suhu: 31, aqi: "BAIK" },
   degayu: { suhu: 30, aqi: "SEDANG" },
   nggantol: { suhu: 28, aqi: "BAIK" },
-  "tel aviv": { suhu: 34, aqi: "SANGAT_TIDAK_SEHAT" },
+  "tel aviv": { suhu: 34, aqi: "TIDAK_SEHAT" },
   jakarta: { suhu: 33, aqi: "TIDAK_SEHAT" },
   semarang: { suhu: 32, aqi: "SEDANG" },
 };
