@@ -3,7 +3,7 @@ import { useState } from "react";
 import { cariKota } from "../services/geocoding";
 import { GeocodingResult } from "../types/geocoding";
 
-export function usePencarianKota() {
+export function usePencarianKota(delay = 800) {
   const [query, setQuery] = useState("");
   const [hasil, setHasil] = useState<GeocodingResult[]>([]);
   const [sedangMemuat, setSedangMemuat] = useState(false);
