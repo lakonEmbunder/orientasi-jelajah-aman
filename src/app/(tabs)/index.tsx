@@ -1,87 +1,101 @@
-// app/(tabs)/index.tsx
-import { useEffect, useState } from "react";
-import { Text, useWindowDimensions } from "react-native";
+// src/app/(tabs)/index.tsx
+import { useState, useEffect, useRef } from "react";
+import { View, Text, ActivityIndicator, Button, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import HasilPencarianList from "../../components/HasilPencarianList";
-import RiwayatList from "../../components/RiwayatList";
 import SearchBox from "../../components/SearchBox";
 import WeatherCard from "../../components/WeatherCard";
-import { usePencarianKota } from "../../hooks/usePencarianKota";
-import { TingkatAQI } from "../../types/cuaca";
-import { GeocodingResult } from "../../types/geocoding";
-
-// Data dummy cuaca per kota
-const DATA_CUACA_KOTA: Record<string, { suhu: number; aqi: TingkatAQI }> = {
-  pekalongan: { suhu: 31, aqi: "BAIK" },
-  degayu: { suhu: 30, aqi: "SEDANG" },
-  nggantol: { suhu: 28, aqi: "BAIK" },
-  "tel aviv": { suhu: 34, aqi: "TIDAK_SEHAT" },
-  jakarta: { suhu: 33, aqi: "TIDAK_SEHAT" },
-  semarang: { suhu: 32, aqi: "SEDANG" },
-};
+import AtribusiCuaca from "../../components/AtribusiCuaca";
+import { useDebounce } from "../../hooks/use-debounce";
+import { cariKota } from "../../services/geocodingService";
+import { ambilCuaca } from "../../services/weatherService";
+import { ambilKualitasUdara } from "../../services/airQualityService";
+import { konversiTingkatAQI } from "../../services/weatherAdapter";
+import { labelKodeCuaca } from "../../constants/weatherCodes";
+import { HasilGeocoding } from "../../../types/geocoding";
+import { DataCuacaLengkap, DataKualitasUdara } from "../../../types/weather";
 
 export default function HalamanUtama() {
-  const [kotaAktif, setKotaAktif] = useState("Pekalongan");
-  const [riwayat, setRiwayat] = useState<string[]>(["Pekalongan"]);
+  const [teksCari, setTeksCari] = useState("");
+  const [hasilPencarian, setHasilPencarian] = useState<HasilGeocoding[]>([]);
+  const [kotaTerpilih, setKotaTerpilih] = useState<HasilGeocoding | null>(null);
+  const [cuaca, setCuaca] = useState<DataCuacaLengkap | null>(null);
+  const [kualitasUdara, setKualitasUdara] = useState<DataKualitasUdara | null>(null);
+  const [sedangMemuat, setSedangMemuat] = useState(false);
+  const [pesanError, setPesanError] = useState<string | null>(null);
 
-  const { width } = useWindowDimensions();
-  const isTablet = width > 768;
-
-  // Panggil custom hook pencarian
-  const { query, hasil, sedangMemuat, error, eksekusiCari } =
-    usePencarianKota();
+  const teksTertunda = useDebounce(teksCari, 500);
+  const requestIdRef = useRef(0); // pencegah race condition
 
   useEffect(() => {
-    console.log("Kota aktif berubah menjadi:", kotaAktif);
-  }, [kotaAktif]);
+    if (teksTertunda.trim().length === 0) {
+      setHasilPencarian([]);
+      return;
+    }
+    cariKota(teksTertunda).then(setHasilPencarian).catch(() => setHasilPencarian([]));
+  }, [teksTertunda]);
 
-  function handlePilihKota(item: GeocodingResult) {
-    setKotaAktif(item.name);
-    if (!riwayat.includes(item.name)) {
-      setRiwayat([item.name, ...riwayat]);
+  async function pilihKota(kota: HasilGeocoding) {
+    setKotaTerpilih(kota);
+    const idSaatIni = ++requestIdRef.current;
+    setSedangMemuat(true);
+    setPesanError(null);
+
+    try {
+      const [dataCuaca, dataAQI] = await Promise.all([
+        ambilCuaca(kota.latitude, kota.longitude),
+        ambilKualitasUdara(kota.latitude, kota.longitude),
+      ]);
+
+      if (idSaatIni !== requestIdRef.current) return; // hasil basi, abaikan
+
+      setCuaca(dataCuaca);
+      setKualitasUdara(dataAQI);
+    } catch (err) {
+      if (idSaatIni !== requestIdRef.current) return;
+      setPesanError("Gagal memuat data cuaca. Periksa koneksi internet Anda.");
+    } finally {
+      if (idSaatIni === requestIdRef.current) setSedangMemuat(false);
     }
   }
 
-  // Cari data cuaca berdasarkan nama kota (lowercase), jika tidak ada gunakan data default
-  const namaKotaClean = kotaAktif.trim().toLowerCase();
-  const dataCuaca = DATA_CUACA_KOTA[namaKotaClean] || {
-    suhu: 27,
-    aqi: "BAIK" as TingkatAQI,
-  };
-
   return (
-    <SafeAreaView style={{ flex: 1, padding: isTablet ? 32 : 16, gap: 16 }}>
-      <SearchBox onCari={eksekusiCari} />
+    <SafeAreaView style={{ flex: 1, padding: 16, gap: 16 }}>
+      <SearchBox onCari={setTeksCari} />
 
-      {/* Tampilkan Hasil Pencarian Geocoding jika sedang mengetik/mencari */}
-      {query.trim() !== "" ? (
-        <>
-          {/* LATIHAN MANDIRI 1: Tampilkan Teks Indikator Jumlah Kota */}
-          {!sedangMemuat && !error && hasil.length > 0 && (
-            <Text style={{ fontWeight: "bold", color: "#555" }}>
-              Ditemukan {hasil.length} kota
-            </Text>
-          )}
+      {hasilPencarian.map((kota) => (
+        <TouchableOpacity key={kota.id} onPress={() => pilihKota(kota)}>
+          <Text>{kota.name}</Text>
+        </TouchableOpacity>
+      ))}
 
-          <HasilPencarianList
-            data={hasil}
-            sedangMemuat={sedangMemuat}
-            error={error}
-            query={query}
-            onPilihKota={handlePilihKota}
+      {sedangMemuat && <ActivityIndicator />}
+
+      {pesanError && (
+        <View>
+          <Text>{pesanError}</Text>
+          <Button
+            title="Coba Lagi"
+            onPress={() => kotaTerpilih && pilihKota(kotaTerpilih)}
           />
-        </>
-      ) : (
-        <>
-          <WeatherCard
-            kota={kotaAktif}
-            suhu={dataCuaca.suhu}
-            tingkatAQI={dataCuaca.aqi}
-          />
-          <RiwayatList daftarKota={riwayat} />
-        </>
+        </View>
       )}
+
+      {cuaca && kualitasUdara && kotaTerpilih && !sedangMemuat && (
+        <WeatherCard
+          kota={kotaTerpilih.name}
+          suhu={cuaca.saatIni.suhu}
+          tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
+          indeksAQI={kualitasUdara.indeksAQI}
+        />
+      )}
+
+      {cuaca && (
+        <Text style={{ fontSize: 12, color: "#888" }}>
+          Kondisi: {labelKodeCuaca(cuaca.saatIni.kodeCuaca)} • Angin {cuaca.saatIni.kecepatanAngin} km/j
+        </Text>
+      )}
+
+      <AtribusiCuaca />
     </SafeAreaView>
   );
 }
