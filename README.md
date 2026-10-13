@@ -1,6 +1,16 @@
-# Welcome to your Expo app 👋
+# Jelajah Aman 🧭
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplikasi informasi cuaca, kualitas udara (AQI), dan navigasi lokasi berbasis Expo React Native dengan arsitektur offline-first menggunakan SQLite.
+
+## Dokumentasi Status Data & Offline-First (Pertemuan 7)
+
+Perbedaan ketiga kondisi data dan alasan pentingnya label status data:
+1. **Cache-Segar**: Data cuaca tersimpan di database lokal SQLite dengan umur kurang dari batas TTL (30 menit), sehingga disajikan langsung secara instan tanpa perlu memanggil API jaringan.
+2. **Cache-Basi**: Data lokal yang umurnya sudah melampaui batas TTL 30 menit, namun tetap dimanfaatkan sebagai cadangan (fallback) saat koneksi internet terputus atau mode offline.
+3. **First-Run Offline**: Kondisi saat aplikasi diakses tanpa internet dan belum ada riwayat data yang tersimpan sama sekali di database lokal, sehingga memunculkan pesan informatif beserta tombol "Coba Lagi".
+4. **Pentingnya Label Status Data**: Label status memberikan transparansi informasi secara jujur kepada pengguna tentang kebaruan data yang dilihat (apakah data terkini atau data usang), sehingga pengguna tidak salah mengambil keputusan saat merencanakan perjalanan.
+
+---
 
 ## Get started
 
